@@ -153,8 +153,38 @@ http {
 - `Distributed Cache:` Chia sẻ cache giữa nhiều instances của dịch vụ để đảm bảo tính nhất quán và sẵn sàng khi có sự cố.
 #### **Chiến lược Cache**
 - `Cache Aside`: Dịch vụ kiểm tra cache trước khi truy vấn cơ sở dữ liệu. Nếu dữ liệu không có trong cache, nó sẽ truy vấn cơ sở dữ liệu và sau đó lưu trữ kết quả vào cache.
+
+    - `Khi nào nên sử dụng:`
+    Khi dữ liệu không thường xuyên thay đổi, nhưng có xu hướng được truy cập nhiều lần.
+    Khi bạn muốn tối ưu hóa cho các truy vấn đọc nhiều hơn ghi.
+    - `Lợi ích:`
+    Tăng tốc độ truy cập dữ liệu bằng cách lưu trữ dữ liệu đã truy vấn vào cache.
+    Tính năng ẩn bản ghi lỗi: nếu cache không có dữ liệu, bạn chỉ cần truy vấn cơ sở dữ liệu.
+    - `Nhược điểm:`
+    Không đảm bảo tính nhất quán dữ liệu, nhất là khi dữ liệu trong cơ sở dữ liệu thay đổi mà không được cập nhật trong cache.
+    Một số trường hợp có thể gây ra độ trễ lớn khi dữ liệu không có trong cache và phải truy vấn lại từ cơ sở dữ liệu.
+
 - `Write Through`: Khi ứng dụng ghi dữ liệu, nó sẽ đồng thời ghi vào cache và cơ sở dữ liệu. Điều này giúp đảm bảo rằng cache luôn cập nhật thông tin mới nhất.
+    - `Khi nào nên sử dụng:`
+    Khi bạn cần đảm bảo dữ liệu luôn nhất quán giữa cache và cơ sở dữ liệu.
+    Khi việc ghi dữ liệu là tương đối ít so với đọc.
+    - `Lợi ích:`
+    Dữ liệu trong cache và cơ sở dữ liệu luôn đồng bộ, giảm thiểu khả năng xuất hiện lỗi.
+    Người dùng có thể truy xuất dữ liệu ngay lập tức từ cache mà không cần chờ đợi quá lâu.
+    - `Nhược điểm:`
+    Thời gian ghi vào cache có thể làm chậm quá trình ghi dữ liệu.
+    Tăng tải cho cả cache và cơ sở dữ liệu do phải cập nhật cả hai.
+
 - `Write Back`: Ứng dụng ghi dữ liệu vào cache trước, và sau đó mới ghi vào cơ sở dữ liệu. Giải pháp này cải thiện tốc độ nhưng có nguy cơ mất dữ liệu nếu cache gặp sự cố.
+    - `Khi nào nên sử dụng:`
+    Khi tốc độ ghi là ưu tiên hàng đầu và có thể chấp nhận một chút không nhất quán trong ngắn hạn.
+    Khi bạn có lượng ghi lớn và muốn cải thiện hiệu suất ghi.
+    - `Lợi ích:`
+    Tăng hiệu suất ghi vì các phép ghi diễn ra nhanh hơn với cache.
+    Giảm tải cho cơ sở dữ liệu vì không phải ghi dữ liệu ngay lập tức.
+    - `Nhược điểm:`
+    Có nguy cơ mất dữ liệu nếu cache bị xóa hoặc gặp sự cố trước khi ghi về cơ sở dữ liệu.
+    Tính nhất quán dữ liệu không được đảm bảo, có thể gây khó khăn cho việc truy vấn thông tin chính xác.
 
 #### **Giải pháp Caching**
 - `Cấu hình Cache Header:` Tối ưu hóa trình duyệt client bằng cách sử dụng các cache header như Expires, Cache-Control.
@@ -243,3 +273,164 @@ public class RedisCacheExample {
     }
 }
 ```
+
+#### **Ví dụ về cách cấu hình TTL (Time to Live) trong các hệ thống cache phổ biến như Redis và Memcached.**
+> **1. Redis:**
+Trong Redis, bạn có thể cấu hình TTL khi thêm một mục vào cache hoặc cập nhật nó. Dưới đây là một số cách để thiết lập TTL:
+#### *Ví dụ 1: Thiết lập TTL khi thêm dữ liệu*
+```bash
+SET mykey "Hello"
+EXPIRE mykey 60  # Đặt TTL là 60 giây
+```
+
+#### *Ví dụ 2: Thiết lập TTL với lệnh SET*
+>>Có thể sử dụng lệnh SET với TTL để thiết lập cả giá trị và thời gian sống cùng một lúc.
+```bash
+SET mykey "Hello" EX 60  # Đặt TTL là 60 giây
+```
+
+
+#### *Ví dụ 3: Cập nhật TTL cho một mục đã có*
+```bash
+EXPIRE mykey 30  # Cập nhật TTL còn 30 giây
+```
+
+> **2. Memcached: Trong Memcached, bạn cũng có thể thiết lập TTL khi thêm dữ liệu. Dưới đây là cách thực hiện:**
+#### *Ví dụ 1: Thiết lập TTL khi thêm dữ liệu*
+```bash
+set mykey 60 "Hello"  # TTL là 60 giây
+```
+
+#### *Ví dụ 2: Cập nhật TTL cho một mục đã có*
+```bash
+touch mykey 30  # Cập nhật TTL còn 30 giây
+```
+> **3. Mô tả thêm về TTL**
+- `TTL Chắc chắn quyền kiểm soát:` Cấu hình TTL giúp quản lý dung lượng cache hiệu quả và ngăn ngừa việc sử dụng bộ nhớ không cần thiết.
+- `Tính nhất quán dữ liệu:` Bằng cách thiết lập TTL, bạn đảm bảo rằng dữ liệu cũ sẽ được tự động xóa sau một khoảng thời gian nhất định, giúp dữ liệu luôn được cập nhật.
+
+#### **Ví dụ về cách triển khai cache trong các ngữ cảnh dịch vụ backend phức tạp hơn:**
+#### *1. Cache cho API Responses*
+>Ngữ cảnh: Một dịch vụ backend cung cấp API cho ứng dụng di động hoặc web.
+- `Triển khai:`
+    - `Sử dụng Redis` để lưu trữ kết quả API, giúp giảm tải cho cơ sở dữ liệu.
+- `Ví dụ:`
+```python
+from flask import Flask, request
+import redis
+import json
+
+app = Flask(__name__)
+cache = redis.StrictRedis(host='localhost', port=6379, db=0)
+
+@app.route('/data/<int:id>', methods=['GET'])
+def get_data(id):
+    cached_response = cache.get(f"data:{id}")
+    if cached_response:
+        return json.loads(cached_response)
+    
+    # Giả sử fetch_data_from_db là một hàm truy vấn dữ liệu từ CSDL
+    data = fetch_data_from_db(id)
+    cache.setex(f"data:{id}", 300, json.dumps(data))  # TTL 300 giây
+    return data
+```
+#### *2. Cache cho Session Data*
+>Ngữ cảnh: Một ứng dụng web cần lưu trữ session của người dùng.
+- `Triển khai:`
+    - `Sử dụng Memcached` hoặc Redis để lưu trữ session, cho phép truy cập nhanh và lưu trữ phiên.
+- `Ví dụ: `
+```python
+from flask import Flask, session
+from flask_session import Session
+
+app = Flask(__name__)
+app.config['SESSION_TYPE'] = 'filesystem'  # Có thể dùng Redis ở đây
+Session(app)
+
+@app.route('/set_session')
+def set_session():
+    session['user_id'] = 42  # Lưu trữ ID người dùng
+    return 'Session Set'
+
+@app.route('/get_session')
+def get_session():
+    user_id = session.get('user_id', None)
+    return f'User ID: {user_id}'
+```
+#### *3. Cache cho kết quả tính toán tốn thời gian*
+>Ngữ cảnh: Một dịch vụ backend cần thực hiện các phép toán phức tạp, như tính toán số liệu thống kê.
+
+- `Triển khai:`
+    - `Sử dụng Redis` để lưu trữ kết quả của các phép toán, tránh việc tính toán lại.
+
+- `Ví dụ: `
+```python
+def compute_heavy_task(data):
+    # Một phép toán tốn thời gian, ví dụ: phân tích thống kê
+    return result
+
+@app.route('/compute')
+def compute_endpoint():
+    cache_key = "heavy_computation_result"
+    cached_result = cache.get(cache_key)
+
+    if cached_result:
+        return json.loads(cached_result)
+
+    data = obtain_data()  # Lấy dữ liệu để tính toán
+    result = compute_heavy_task(data)
+    cache.setex(cache_key, 600, json.dumps(result))  # TTL 600 giây
+    return result
+```
+#### *Cache cho sử dụng trong microservices*
+>Ngữ cảnh: Trong một kiến trúc microservices, các service có thể cần sử dụng dữ liệu chung.
+
+- `Triển khai:`
+    - `Sử dụng Redis` như một dịch vụ chuyên biệt để chia sẻ cache giữa các microservices.
+
+- `Ví dụ: Giả sử có dịch vụ A và B, dịch vụ A lưu trữ một số liệu mà dịch vụ B cần.`
+```python
+# Service A
+@app.route('/add_item')
+def add_item():
+    item_id = add_to_database()
+    cache.setex(f"item:{item_id}", 3600, item_data)  # TTL 1 giờ
+    return "Item added!"
+
+# Service B
+@app.route('/get_item/<int:item_id>')
+def get_item(item_id):
+    cached_item = cache.get(f"item:{item_id}")
+    if cached_item:
+        return json.loads(cached_item)
+    
+    return "Item not found", 404
+```
+## **6. Một số phương pháp xác định nguồn gốc tải nặng trong hệ thống microservices**
+### **1. Công cụ Giám sát**
+- `Prometheus:`
+    - `Mục đích:` Giám sát và thu thập số liệu về hiệu suất từ các ứng dụng.
+    - `Cách sử dụng:` Cài đặt Prometheus trên server của bạn và cấu hình các target để thu thập dữ liệu từ các service. Sử dụng PromQL để truy vấn và phân tích dữ liệu.
+- `Grafana:`
+    - `Mục đích:` Trực quan hóa số liệu thu thập được từ Prometheus hoặc các nguồn khác.
+    - `Cách sử dụng:` Kết nối Grafana với Prometheus và tạo dashboard để theo dõi các chỉ số hiệu suất như CPU, RAM, số lượng yêu cầu, v.v.
+- `ELK Stack (Elasticsearch, Logstash, Kibana):`
+    - `Mục đích:` Lưu trữ, phân tích và trực quan hóa log.
+    - `Cách sử dụng:` Sử dụng Logstash để thu thập và xử lý log, lưu trữ trong Elasticsearch, và sử dụng Kibana để tạo bảng điều khiển và tìm kiếm log.
+### **2. Công cụ Phân tích Phân tán**
+- `Jaeger:`
+    - `Mục đích:` Phân tích truy vết (tracing) và theo dõi luồng dữ liệu trong các microservices.
+    - `Cách sử dụng:` Tích hợp Jaeger vào ứng dụng của bạn để thu thập thông tin truy vết. Bạn có thể theo dõi thời gian xử lý giữa các service và nhận diện các điểm nghẽn.
+- `Zipkin:`
+    - `Mục đích:` Giúp theo dõi các yêu cầu qua lại giữa các microservices.
+    - `Cách sử dụng:` Tích hợp Zipkin vào các service để gửi dữ liệu truy vết. Zipkin cung cấp giao diện web để nhìn thấy toàn bộ số liệu và hiệu suất.
+### **3. Phân tích Số liệu**
+- `Sử dụng Dashboards:` Tạo các dashboard tùy chỉnh để theo dõi các chỉ số quan trọng như thời gian phản hồi, tỷ lệ yêu cầu thành công, và tài nguyên sử dụng.
+- `Thiết lập Cảnh báo:` Đặt ngưỡng cho các chỉ số và cấu hình các cảnh báo để nhận thông báo khi tải đạt cao hoặc có lỗi xảy ra.
+### **4. Kỹ thuật Phân tích**
+- `Profiling:` Sử dụng các công cụ profiling để phân tích hiệu suất mã nguồn, xác định các đoạn mã chạy chậm.
+- `A/B Testing:` Triển khai các thay đổi nhỏ và theo dõi hiệu suất để đảm bảo rằng chúng không làm gia tăng tải.
+### **5. Ghi chép và Phân tích Log**
+- `Phân tích Log:` Sử dụng các công cụ như ELK hoặc Fluentd để phân tích log và tìm kiếm các lỗi hoặc sự kiện bất thường.
+- `Tìm kiếm Mẫu Lỗi:` Xác định các mẫu lỗi phổ biến và theo dõi tần suất xuất hiện của chúng.
+
