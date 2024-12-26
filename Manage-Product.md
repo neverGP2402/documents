@@ -1,34 +1,30 @@
-# Phần mềm "Quản lý con hàng điện tử"
+# `Phần mềm "Quản lý con hàng điện tử"`
 
-### I. TỔNG QUAN
+### `I. TỔNG QUAN`
 Phần mềm được xây dựng trên nền tản mobile app và sử dụng React Native để triển khai ứng dụng giúp quản lý thông tin các con hàng điện tử. Phần mềm sẽ không kết nối với Database để quản lý dữ liệu thay vào đó là quản lý dữ liệu bằng file json khi chỉnh sửa dữ liệu sẽ chỉnh sửa trên file đó
 
-### II. NGHIỆP VỤ VÀ MÀN HÌNH
+### `II. NGHIỆP VỤ VÀ MÀN HÌNH`
 
-#### 1. Quản lý thông tin con hàng:
+#### `1. Quản lý thông tin con hàng:`
 - Mã con hàng
 - Tên con hàng
 - Hình ảnh (upload hoặc chụp)
+- Mô tả
 - Số cổng (lỗ) kết nối
-
-#### 1. Quản lý thông tin con hàng:
-- Mã con hàng
-- Tên con hàng
-- Hình ảnh (upload hoặc chụp)
-- Số cổng (lỗ) kết nối
-#### 2. Quản lý thông tin dây kết nối
+- Danh sách cổng kết nối
+#### `2. Quản lý thông tin dây kết nối`
 - Tên (loại) dây
 - Màu (chọn từ option 7 màu cầu vòng mã màu RGB)
-#### 3. Cấu hình cổng kết nối
+#### `3. Cấu hình cổng kết nối`
 - Bước 1 Chọn con hàng  
 - Bước 2 Cấu hình cổng kết nối cho con hàng (Chọn dây cho cổng)
 
-#### 4. Màn hình tra hiển thị danh sách con hàng
+#### `4. Màn hình tra hiển thị danh sách con hàng`
 Gồm: tên con hàng, hình ảnh (dạng avt click vào popup lên xem review), cổng kết nối theo dây (Dây nào màu đó nếu không chưa cấu hình hoặc k có đánh dấu x)
 
-## III. CẤU TRÚC DỮ LIỆU
+## `III. CẤU TRÚC DỮ LIỆU`
 > Dữ liệu chia thành đối tượng và mỗi đối tượng là 1 file
-#### Thông tin con hàng (product.json):
+#### Thông tin con hàng (`product.json`):
 ``` json
 {
     "id": "id",
@@ -54,7 +50,7 @@ Gồm: tên con hàng, hình ảnh (dạng avt click vào popup lên xem review)
 }
 ```
 
-#### Thông tin dây kết nối (wire.json):
+#### Thông tin dây kết nối (`wire.json`):
 ``` json
 [
     {
@@ -77,14 +73,28 @@ Gồm: tên con hàng, hình ảnh (dạng avt click vào popup lên xem review)
 ```
 
 ## IV CÁC MODULE CẦN
-1. Module cho product.json (productModule.js): Cung cấp các chức năng thêm, sửa và xóa đối tượng con hàng từ file product.json.
+1. Module cho product.json (`productModule.js`): Cung cấp các chức năng thêm, sửa và xóa đối tượng con hàng từ file product.json.
 
 ``` javascript
 const fs = require('fs');
 const path = require('path');
 
 const productFilePath = path.join(__dirname, 'product.json');
+const getCurrentTime =() =>{
+  const now = new Date();
 
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  const formattedDate = `${year}${month}${day}${hours}${minutes}${seconds}`;
+
+  console.log(formattedDate);
+  return formattedDate;
+}
 // Đọc file JSON
 const readProductData = () => {
   try {
@@ -105,15 +115,41 @@ const writeProductData = (data) => {
 };
 
 // Thêm một sản phẩm mới
-const addProduct = (newProduct) => {
+const addProduct = (name, code, total_port_connect, data_image, description) => {
+    let status = 'error'
+    let message = ''
+    const result = {
+        status: status,
+        message message
+    }
+    if(!name) 
   try {
+    const data_connect = []
+    for(let i = 0; i < total_port_connect ; i++){
+      data_connect.push({port: i +1, "id_wire": null})
+    }
+    const newProduct = {
+      "id": getCurrentTime(),
+      "name": name,
+      "code": code,
+      "total_port_connect": total_port_connect,
+      "image_path": null,
+      "description": description,
+      "data_connect":data_connect
+    }
     const products = readProductData();
     products.push(newProduct);
     writeProductData(products);
-    return { status: 'success', data: 'Sản phẩm đã được thêm.' };
+    message = 'Sản phẩm đã được thêm.'
+    status = 'success'
   } catch (err) {
-    return { status: 'error', data: err.message };
+    message = 'error'
+    message = err.message
   }
+  return {
+        status: status,
+        message message
+    }
 };
 
 // Sửa thông tin sản phẩm theo ID
@@ -155,7 +191,7 @@ module.exports = { addProduct, editProduct, deleteProduct };
 
 ```
 
-2. Module cho wire.json (wireModule.js)
+2. Module cho wire.json (`wireModule.js`)
 ```javascript
 const fs = require('fs');
 const path = require('path');
@@ -308,9 +344,9 @@ const uploadImage = (base64Data, fileName) => {
 
     // Ghi buffer vào tệp
     fs.writeFileSync(filePath, buffer);
-    return { status: 'success', data: `Hình ảnh ${fileName} đã được tải lên.` };
+    return { status: 'success', data: `Hình ảnh ${fileName} đã được tải lên.`, file_path: filePath };
   } catch (err) {
-    return { status: 'error', data: `Lỗi tải ảnh lên: ${err.message}` };
+    return { status: 'error', data: `Lỗi tải ảnh lên: ${err.message}`,file_path: '' };
   }
 };
 
